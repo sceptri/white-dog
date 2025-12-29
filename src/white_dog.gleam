@@ -1,6 +1,12 @@
 import dot_env
 import dot_env/env
+import gcourier
+import gcourier/message
+import gcourier/smtp
 import gleam/erlang/process
+import gleam/option.{Some}
+import gleam/string
+import mail/mailer
 import mist
 import web/router
 import web/web.{Context}
@@ -19,12 +25,42 @@ pub fn main() {
   //   |> duration.to_seconds
   //   |> fn(time) { time *. 1000.0 }
 
+  let message =
+    message.build()
+    |> message.set_from("robot@zapadlo.name", Some("Robot"))
+    |> message.set_sender("robot@zapadlo.name", Some("Robot"))
+    |> message.add_recipient("stepan.zapadlo@gmail.com", message.To)
+    |> message.set_subject("You're Invited: Pizza & Ping Pong Night!")
+    |> message.set_html(mailer.prepare_body(
+      "
+      <html>
+          <body>
+              <h1 style='color:tomato;'>🎈 You're Invited! 🎈</h1>
+              <p>Hey friend,</p>
+              <p>We're hosting a <strong>Pizza & Ping Pong Night</strong> this Friday at 7 PM. 
+              Expect good vibes, cheesy slices, and fierce paddle battles!</p>
+              <p>Let us know if you're in. And bring your A-game. 🏓</p>
+              <p>Cheers,<br/>The Fun Club</p>
+          </body>
+      </html>
+  ",
+    ))
+
   wisp.configure_logger()
 
   dot_env.new()
   |> dot_env.set_path(".env")
   |> dot_env.set_debug(False)
   |> dot_env.load
+
+  let assert Ok(mail_password) = env.get_string("MAIL_PASSWORD")
+
+  //   smtp.send(
+  //     "smtp.seznam.cz",
+  //     587,
+  //     Some(#("robot@zapadlo.name", mail_password)),
+  //     message,
+  //   )
 
   let assert Ok(secret_key_base) = env.get_string("SECRET_KEY_BASE")
 

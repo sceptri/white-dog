@@ -12,7 +12,7 @@ packages = [
   { name = "gcourier", version = "1.3.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_hackney", "gleam_http", "gleam_stdlib", "gleam_time", "shellout", "simplifile", "youid"], otp_app = "gcourier", source = "hex", outer_checksum = "6E253DD147BA27C3B00E5007A2438244011D60BE0F5108629D1C5AAA3E8CFA07" },
   { name = "gleam_crypto", version = "1.5.1", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_crypto", source = "hex", outer_checksum = "50774BAFFF1144E7872814C566C5D653D83A3EBF23ACC3156B757A1B6819086E" },
   { name = "gleam_erlang", version = "1.3.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_erlang", source = "hex", outer_checksum = "1124AD3AA21143E5AF0FC5CF3D9529F6DB8CA03E43A55711B60B6B7B3874375C" },
-  { name = "gleam_hackney", version = "1.3.2", build_tools = ["gleam"], requirements = ["gleam_http", "gleam_stdlib", "hackney"], otp_app = "gleam_hackney", source = "hex", outer_checksum = "CF6B627BC3E3726D14D220C30ACE8EF32433F19C33CE96BBF70C2068DFF04ACD" },
+  { name = "gleam_hackney", version = "1.3.3", build_tools = ["gleam"], requirements = ["gleam_http", "gleam_stdlib", "hackney"], otp_app = "gleam_hackney", source = "hex", outer_checksum = "03B4125E5E6DFD6BC20CC1FAD0D35B8474D9515DFDFFB69255EFE6D7B49BEB07" },
   { name = "gleam_http", version = "4.2.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_http", source = "hex", outer_checksum = "FFE29C3832698AC3EF6202922EC534EE19540152D01A7C2D22CB97482E4AF211" },
   { name = "gleam_httpc", version = "5.0.0", build_tools = ["gleam"], requirements = ["gleam_erlang", "gleam_http", "gleam_stdlib"], otp_app = "gleam_httpc", source = "hex", outer_checksum = "C545172618D07811494E97AAA4A0FB34DA6F6D0061FDC8041C2F8E3BE2B2E48F" },
   { name = "gleam_json", version = "3.1.0", build_tools = ["gleam"], requirements = ["gleam_stdlib"], otp_app = "gleam_json", source = "hex", outer_checksum = "44FDAA8847BE8FC48CA7A1C089706BD54BADCC4C45B237A992EDDF9F2CDB2836" },
@@ -51,16 +51,16 @@ packages = [
 [requirements]
 dot_env = { version = ">= 1.2.0 and < 2.0.0" }
 gcourier = { version = ">= 1.3.0 and < 2.0.0" }
+gleam_erlang = { version = ">= 1.3.0 and < 2.0.0" }
 gleam_http = { version = ">= 4.2.0 and < 5.0.0" }
 gleam_httpc = { version = ">= 5.0.0 and < 6.0.0" }
+gleam_json = { version = ">= 3.1.0 and < 4.0.0" }
 gleam_regexp = { version = ">= 1.1.1 and < 2.0.0" }
 gleam_stdlib = { version = ">= 0.44.0 and < 2.0.0" }
 gleam_time = { version = ">= 1.5.0 and < 2.0.0" }
 gleeunit = { version = ">= 1.0.0 and < 2.0.0" }
 lustre = { version = ">= 5.4.0 and < 6.0.0" }
+mist = { version = ">= 5.0.3 and < 6.0.0" }
 presentable_soup = { version = ">= 1.0.0 and < 2.0.0" }
 sqlight = { version = ">= 1.0.3 and < 2.0.0" }
 wisp = { version = ">= 2.1.0 and < 3.0.0" }
-gleam_erlang = { version = ">= 1.3.0 and < 2.0.0" }
-mist = { version = ">= 5.0.3 and < 6.0.0" }
-gleam_json = { version = ">= 3.1.0 and < 4.0.0" }

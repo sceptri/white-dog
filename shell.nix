@@ -13,6 +13,7 @@ in
     buildInputs = with unstablePkgs; [
 		beam27Packages.rebar3
 		inotify-tools
+		mailpit
     ];
 
     shellHook = ''
