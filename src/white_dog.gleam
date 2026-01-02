@@ -15,10 +15,10 @@ import wisp/wisp_mist
 pub fn main() {
   // let start_time = timestamp.system_time()
 
-  //   let competition_id = 5381
-  //   let assert Ok(competition) = kacr.query_competition(competition_id)
-  //     as "Could not scrape this competition!"
-  //   echo competition
+  let competition_id = 5381
+  let assert Ok(competition) = kacr.query_competition(competition_id)
+    as "Could not scrape this competition!"
+  echo competition
 
   // let end_time = timestamp.system_time()
   // echo timestamp.difference(start_time, end_time)

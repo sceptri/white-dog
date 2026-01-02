@@ -2,8 +2,9 @@ import gleam/float
 import gleam/int
 import gleam/list
 import gleam/option.{type Option, None, Some}
+import gleam/result
+import gleam/string
 import gleam/time/calendar
-import scraper/kacr
 import wisp
 
 pub type CompetitionOrigin {
@@ -51,28 +52,6 @@ pub type CompetitionInfo {
     agigames_id: Option(Int),
     note: Option(String),
   )
-}
-
-pub fn build_from_kacr_query(
-  query: kacr.CompetitionQuery,
-) -> Result(AbstractCompetition, Nil) {
-  Ok(Competition(
-    id: wisp.random_string(64),
-    name: query.name,
-    days: [
-      CompetitionDay(
-        // TODO: Fix this
-        date: calendar.Date(2023, calendar.April, 15),
-        occupancy: Some(Finite(
-          [query.signed_up],
-          query.signed_up + query.vacancies,
-        )),
-      ),
-    ],
-    origin: KACR(query.id),
-    deadline: None,
-    info: None,
-  ))
 }
 
 pub fn test_competitions() -> List(AbstractCompetition) {
@@ -160,6 +139,18 @@ pub fn date_to_string(input_date: calendar.Date) -> String {
   <> int.to_string(calendar.month_to_int(input_date.month))
   <> "."
   <> int.to_string(input_date.year)
+}
+
+pub fn string_to_date(string_date: String) -> Result(calendar.Date, Nil) {
+  let split_date = string_date |> string.split(on: ". ") |> list.map(int.parse)
+  case split_date {
+    [Ok(day), Ok(month), Ok(year)] -> {
+      use calendar_month <- result.try(calendar.month_from_int(month))
+      Ok(calendar.Date(year, calendar_month, day))
+    }
+
+    _ -> Error(Nil)
+  }
 }
 
 pub fn stringify_competition_date(event: AbstractCompetition) -> String {

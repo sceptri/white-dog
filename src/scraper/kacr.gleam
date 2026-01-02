@@ -1,3 +1,4 @@
+import gleam/function
 import gleam/http/request
 import gleam/httpc
 import gleam/int
@@ -6,6 +7,8 @@ import gleam/option
 import gleam/regexp
 import gleam/result
 import gleam/string
+import gleam/time/calendar
+import web/models/competition
 
 import presentable_soup as soup
 import scraper/utils as scraper
@@ -14,7 +17,9 @@ pub type CompetitionQuery {
   CompetitionQuery(id: Int, vacancies: Int, signed_up: Int, name: String)
 }
 
-pub fn query_competition(id: Int) -> Result(CompetitionQuery, Nil) {
+const unlimited_capacity = 10_000
+
+pub fn query_competition(id: Int) -> Result(String, Nil) {
   let assert Ok(html_doc) = kacr_request(id) as "Competition is invalid"
 
   let query =
@@ -25,11 +30,11 @@ pub fn query_competition(id: Int) -> Result(CompetitionQuery, Nil) {
   //   let assert Ok(_) = soup.find(in: html_doc, matching: query)
   //     as "Competition is invalid (KACR does not track registrations)"
 
-  use vacancies <- result.try(extract_vacancies(html_doc))
-  use signed_up <- result.try(extract_signed_up(html_doc))
+  use signed_up <- result.try(extract_occupancy(html_doc))
+  echo signed_up
   use name <- result.try(extract_name(html_doc))
 
-  Ok(CompetitionQuery(id, vacancies, signed_up, name))
+  Ok(name)
 }
 
 fn extract_name(html_doc: String) -> Result(String, Nil) {
@@ -41,21 +46,24 @@ fn extract_name(html_doc: String) -> Result(String, Nil) {
   |> scraper.get_first_text
 }
 
-fn extract_signed_up(html_doc: String) -> Result(Int, Nil) {
+fn extract_occupancy(
+  html_doc: String,
+) -> Result(List(competition.CompetitionDay), Nil) {
   let statistics_query =
     soup.element([soup.class("statistics")])
     |> soup.descendant([soup.tag("tbody")])
 
   use tables <- result.try(soup.find_all(html_doc, matching: statistics_query))
-  use processed_statistics <- result.try(
-    tables
-    |> list.map(process_single_day)
-    |> list.first,
-  )
-  processed_statistics
+
+  tables
+  |> list.map(process_single_day)
+  |> list.filter_map(function.identity)
+  |> Ok
 }
 
-fn process_single_day(table: soup.Element) -> Result(Int, Nil) {
+fn process_single_day(
+  table: soup.Element,
+) -> Result(competition.CompetitionDay, Nil) {
   use rows <- result.try(
     Ok(table)
     |> scraper.get_children
@@ -68,42 +76,84 @@ fn process_single_day(table: soup.Element) -> Result(Int, Nil) {
   }
 }
 
-fn process_table_rows(rows: List(soup.Element)) -> Result(Int, Nil) {
+fn process_table_rows(
+  rows: List(soup.Element),
+) -> Result(competition.CompetitionDay, Nil) {
   let signed_ups =
     scraper.penultimate(rows)
     |> scraper.get_children
     |> result.map(scraper.filter_elements(_, "td"))
     |> result.map(list.map(_, summary_column_info))
+    |> result.map(scraper.drop_last)
 
-  // All taken slots
-  echo signed_ups
+  let vacancies =
+    list.last(rows)
+    |> go_lower_in_table
+    |> go_lower_in_table
+    |> scraper.get_first_text
+    |> result.try(parse_vacancies_text)
 
-  signed_ups
-  |> result.try(list.first)
-  |> result.flatten
+  let date =
+    list.first(rows)
+    |> go_lower_in_table
+    |> scraper.get_first_text
+    |> result.map(string.replace(in: _, each: "\n", with: ""))
+    |> result.try(competition.string_to_date)
+
+  case signed_ups, vacancies, date {
+    Ok(signed_ups), Ok(vacancies), Ok(date) -> {
+      let ok_signed_ups = list.filter_map(signed_ups, function.identity)
+      let signed_up_sum = list.fold(ok_signed_ups, 0, int.add)
+      let empty_signed_ups = list.is_empty(ok_signed_ups)
+
+      case vacancies, signed_up_sum, empty_signed_ups {
+        _, _, True -> Error(Nil)
+        0, 0, False -> Ok(competition.CompetitionDay(date, option.None))
+        capacity, _, False if capacity == unlimited_capacity ->
+          Ok(competition.CompetitionDay(
+            date,
+            option.Some(competition.Infinite(ok_signed_ups)),
+          ))
+        _, signed_up_sum, False ->
+          Ok(competition.CompetitionDay(
+            date,
+            option.Some(competition.Finite(
+              ok_signed_ups,
+              vacancies + signed_up_sum,
+            )),
+          ))
+      }
+    }
+    _, _, _ -> Error(Nil)
+  }
+}
+
+fn go_lower_in_table(
+  row: Result(soup.Element, Nil),
+) -> Result(soup.Element, Nil) {
+  row
+  |> scraper.get_children
+  |> result.try(scraper.penultimate)
 }
 
 fn summary_column_info(el: soup.Element) -> Result(Int, Nil) {
-  Ok(el)
-  |> scraper.get_children
-  |> result.try(scraper.penultimate)
-  |> scraper.get_first_text
-  |> result.try(int.parse)
-}
-
-fn extract_vacancies(html_doc: String) -> Result(Int, Nil) {
-  let vacancies_query =
-    soup.element([soup.tag("td"), soup.class("red")])
-    |> soup.descendant([soup.tag("span")])
-
-  soup.find(html_doc, matching: vacancies_query)
-  |> scraper.get_first_text
-  |> result.try(parse_vacancies_text)
-  //|> result.replace_error("Could not determine the number of vacant spots!")
+  case el {
+    soup.Element(_, attributes, _) -> {
+      case list.contains(attributes, #("class", "inactive")) {
+        True -> Error(Nil)
+        False ->
+          Ok(el)
+          |> scraper.get_children
+          |> result.try(scraper.penultimate)
+          |> scraper.get_first_text
+          |> result.try(int.parse)
+      }
+    }
+    _ -> Error(Nil)
+  }
 }
 
 fn parse_vacancies_text(text: String) -> Result(Int, Nil) {
-  let unlimited_capacity = 10_000
   let assert Ok(capacity_regex) = regexp.from_string("([0-9]+) volných míst")
 
   case text {

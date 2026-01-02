@@ -42,3 +42,10 @@ pub fn filter_elements(
     }
   })
 }
+
+pub fn drop_last(from collection: List(a)) -> List(a) {
+  collection
+  |> list.reverse
+  |> list.drop(up_to: 1)
+  |> list.reverse
+}
