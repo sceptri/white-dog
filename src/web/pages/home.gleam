@@ -34,7 +34,7 @@ fn each_competition(event: AbstractCompetition) -> Element(t) {
       div([class("competition-header")], [
         html.p([class("competition-title")], [text(event.name)]),
         html.p([class("competition-title")], [
-          text(competition.stringify_competition_date(event.date)),
+          text(competition.stringify_competition_date(event)),
         ]),
       ]),
       hr([]),
@@ -99,7 +99,7 @@ fn competition_external_links(event: AbstractCompetition) -> Element(t) {
 fn competition_deadline(event: AbstractCompetition) -> Element(t) {
   case event {
     competition.LockedCompetition(_, _, _, _, _) -> text("")
-    competition.Competition(_, _, _, _, _, deadline, _) ->
+    competition.Competition(_, _, _, _, _, deadline) ->
       case deadline {
         option.None -> text("Neznámý deadline")
         option.Some(deadline_date) ->
@@ -109,31 +109,51 @@ fn competition_deadline(event: AbstractCompetition) -> Element(t) {
 }
 
 fn competition_occupancy(event: AbstractCompetition) -> Element(t) {
-  // TODO: Expand over different categories
   case event {
     competition.LockedCompetition(_, _, _, _, _) ->
       html.p([], [text("Nedostupná obsazenost")])
-    competition.Competition(_, _, _, _, _, _, occupancy) ->
-      html.p(
-        [
-          title(
-            "("
-            <> occupancy.signed_up
-            |> list.map(int.to_string)
-            |> string.join(with: ", ")
-            <> ")",
-          ),
-        ],
-        [text("Obsazenost: ")]
-          |> list.append(case occupancy {
-            competition.Finite(signed_up, capacity) -> [
-              html.u([], [text(int.to_string(list.fold(signed_up, 0, int.add)))]),
-              text("/" <> int.to_string(capacity)),
-            ]
-            competition.Infinite(signed_up) -> [
-              text(int.to_string(list.fold(signed_up, 0, int.add)) <> "/∞"),
-            ]
-          }),
+    competition.Competition(_, _, days, _, _, _) ->
+      html.div(
+        [class("competition-occupancy")],
+        list.append(
+          [text("Obsazenost: ")],
+          days
+            |> list.filter_map(fn(day) {
+              case day.occupancy {
+                option.Some(daily_occupancy) -> Ok(#(daily_occupancy, day.date))
+                option.None -> Error(Nil)
+              }
+            })
+            |> list.map(fn(day) {
+              let #(daily_occupancy, date) = day
+
+              html.p(
+                [
+                  title(
+                    competition.date_to_string(date)
+                    <> ": ("
+                    <> daily_occupancy.signed_up
+                    |> list.map(int.to_string)
+                    |> string.join(with: ", ")
+                    <> ")",
+                  ),
+                ],
+                case daily_occupancy {
+                  competition.Finite(signed_up, capacity) -> [
+                    html.u([], [
+                      text(int.to_string(list.fold(signed_up, 0, int.add))),
+                    ]),
+                    text("/" <> int.to_string(capacity)),
+                  ]
+                  competition.Infinite(signed_up) -> [
+                    text(
+                      int.to_string(list.fold(signed_up, 0, int.add)) <> "/∞",
+                    ),
+                  ]
+                },
+              )
+            }),
+        ),
       )
   }
 }

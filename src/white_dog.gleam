@@ -1,13 +1,12 @@
 import dot_env
 import dot_env/env
-import gcourier
 import gcourier/message
 import gcourier/smtp
 import gleam/erlang/process
 import gleam/option.{Some}
-import gleam/string
 import mail/mailer
 import mist
+import scraper/kacr
 import web/router
 import web/web.{Context}
 import wisp
@@ -16,8 +15,9 @@ import wisp/wisp_mist
 pub fn main() {
   // let start_time = timestamp.system_time()
 
-  //   let competition_id = 5503
+  //   let competition_id = 5381
   //   let assert Ok(competition) = kacr.query_competition(competition_id)
+  //     as "Could not scrape this competition!"
   //   echo competition
 
   // let end_time = timestamp.system_time()

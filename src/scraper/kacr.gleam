@@ -42,26 +42,53 @@ fn extract_name(html_doc: String) -> Result(String, Nil) {
 }
 
 fn extract_signed_up(html_doc: String) -> Result(Int, Nil) {
-  let signed_up_query =
+  let statistics_query =
     soup.element([soup.class("statistics")])
-    |> soup.descendant([soup.tag("tr")])
+    |> soup.descendant([soup.tag("tbody")])
 
-  let assert Ok(rows) = soup.find_all(html_doc, matching: signed_up_query)
-    as "Could not find statistics table!"
+  use tables <- result.try(soup.find_all(html_doc, matching: statistics_query))
+  use processed_statistics <- result.try(
+    tables
+    |> list.map(process_single_day)
+    |> list.first,
+  )
+  processed_statistics
+}
+
+fn process_single_day(table: soup.Element) -> Result(Int, Nil) {
+  use rows <- result.try(
+    Ok(table)
+    |> scraper.get_children
+    |> result.map(scraper.filter_elements(_, "tr")),
+  )
 
   case list.length(rows) > 2 {
-    True ->
-      scraper.penultimate(rows)
-      |> scraper.get_children
-      |> result.map(scraper.filter_elements(_, "td"))
-      |> result.try(list.last)
-      |> scraper.get_children
-      |> result.try(scraper.penultimate)
-      |> scraper.get_first_text
-      |> result.try(int.parse)
-
+    True -> process_table_rows(rows)
     False -> Error(Nil)
   }
+}
+
+fn process_table_rows(rows: List(soup.Element)) -> Result(Int, Nil) {
+  let signed_ups =
+    scraper.penultimate(rows)
+    |> scraper.get_children
+    |> result.map(scraper.filter_elements(_, "td"))
+    |> result.map(list.map(_, summary_column_info))
+
+  // All taken slots
+  echo signed_ups
+
+  signed_ups
+  |> result.try(list.first)
+  |> result.flatten
+}
+
+fn summary_column_info(el: soup.Element) -> Result(Int, Nil) {
+  Ok(el)
+  |> scraper.get_children
+  |> result.try(scraper.penultimate)
+  |> scraper.get_first_text
+  |> result.try(int.parse)
 }
 
 fn extract_vacancies(html_doc: String) -> Result(Int, Nil) {

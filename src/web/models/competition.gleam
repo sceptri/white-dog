@@ -1,5 +1,6 @@
 import gleam/float
 import gleam/int
+import gleam/list
 import gleam/option.{type Option, None, Some}
 import gleam/time/calendar
 import scraper/kacr
@@ -10,34 +11,32 @@ pub type CompetitionOrigin {
   Dogco(id: Int)
 }
 
-pub type CompetitionVariant {
-  SingleDay(date: calendar.Date)
-  MultiDay(start_date: calendar.Date, end_date: calendar.Date)
+pub type Occupancy {
+  Finite(signed_up: List(Int), capacity: Int)
+  Infinite(signed_up: List(Int))
+}
+
+pub type CompetitionDay {
+  CompetitionDay(date: calendar.Date, occupancy: Option(Occupancy))
 }
 
 pub type GPSCoordinates {
   GPSCoordinates(latitude: Float, longitude: Float)
 }
 
-pub type Occupancy {
-  Finite(signed_up: List(Int), capacity: Int)
-  Infinite(signed_up: List(Int))
-}
-
 pub type AbstractCompetition {
   Competition(
     id: String,
     name: String,
-    date: CompetitionVariant,
+    days: List(CompetitionDay),
     origin: CompetitionOrigin,
     info: Option(CompetitionInfo),
     deadline: Option(calendar.Date),
-    occupancy: Occupancy,
   )
   LockedCompetition(
     id: String,
     name: String,
-    date: CompetitionVariant,
+    days: List(calendar.Date),
     origin: CompetitionOrigin,
     info: Option(CompetitionInfo),
   )
@@ -60,8 +59,16 @@ pub fn build_from_kacr_query(
   Ok(Competition(
     id: wisp.random_string(64),
     name: query.name,
-    occupancy: Finite([query.signed_up], query.signed_up + query.vacancies),
-    date: SingleDay(calendar.Date(2023, calendar.April, 15)),
+    days: [
+      CompetitionDay(
+        // TODO: Fix this
+        date: calendar.Date(2023, calendar.April, 15),
+        occupancy: Some(Finite(
+          [query.signed_up],
+          query.signed_up + query.vacancies,
+        )),
+      ),
+    ],
     origin: KACR(query.id),
     deadline: None,
     info: None,
@@ -73,11 +80,13 @@ pub fn test_competitions() -> List(AbstractCompetition) {
     Competition(
       id: wisp.random_string(64),
       name: "Test",
-      occupancy: Finite([10, 20], 40),
-      date: MultiDay(
-        start_date: calendar.Date(2023, calendar.April, 15),
-        end_date: calendar.Date(2023, calendar.April, 16),
-      ),
+      days: [
+        CompetitionDay(
+          calendar.Date(2023, calendar.April, 15),
+          Some(Finite([10, 20], 40)),
+        ),
+        CompetitionDay(calendar.Date(2023, calendar.April, 16), None),
+      ],
       origin: KACR(5503),
       deadline: Some(calendar.Date(2023, calendar.March, 15)),
       info: Some(CompetitionInfo(
@@ -92,11 +101,16 @@ pub fn test_competitions() -> List(AbstractCompetition) {
     Competition(
       id: wisp.random_string(64),
       name: "Bílany u Kroměříže - Vánoční Bílany 20.12. - 2 x zkouška A1,A3,A2 (1 x Jumping A1,A2,A3 otevřený )",
-      occupancy: Finite([10, 20], 40),
-      date: MultiDay(
-        start_date: calendar.Date(2023, calendar.April, 15),
-        end_date: calendar.Date(2023, calendar.April, 16),
-      ),
+      days: [
+        CompetitionDay(
+          calendar.Date(2023, calendar.April, 15),
+          Some(Finite([10, 20], 40)),
+        ),
+        CompetitionDay(
+          calendar.Date(2023, calendar.April, 16),
+          Some(Finite([15, 20], 45)),
+        ),
+      ],
       origin: Dogco(123),
       deadline: Some(calendar.Date(2023, calendar.March, 15)),
       info: Some(CompetitionInfo(
@@ -111,8 +125,12 @@ pub fn test_competitions() -> List(AbstractCompetition) {
     Competition(
       id: wisp.random_string(64),
       name: "Nějaký název",
-      occupancy: Finite([10, 20, 5], 50),
-      date: SingleDay(calendar.Date(2023, calendar.April, 16)),
+      days: [
+        CompetitionDay(
+          calendar.Date(2023, calendar.April, 16),
+          Some(Finite([10, 20, 5], 50)),
+        ),
+      ],
       origin: KACR(5505),
       deadline: None,
       info: None,
@@ -120,7 +138,9 @@ pub fn test_competitions() -> List(AbstractCompetition) {
     LockedCompetition(
       id: wisp.random_string(64),
       name: "Zamčeno",
-      date: SingleDay(calendar.Date(2023, calendar.April, 16)),
+      days: [
+        calendar.Date(2023, calendar.April, 16),
+      ],
       origin: KACR(5504),
       info: None,
     ),
@@ -142,11 +162,28 @@ pub fn date_to_string(input_date: calendar.Date) -> String {
   <> int.to_string(input_date.year)
 }
 
-pub fn stringify_competition_date(
-  competition_date: CompetitionVariant,
-) -> String {
-  case competition_date {
-    SingleDay(date) -> date_to_string(date)
-    MultiDay(start, end) -> date_to_string(start) <> "-" <> date_to_string(end)
+pub fn stringify_competition_date(event: AbstractCompetition) -> String {
+  case event {
+    Competition(_, _, days, _, _, _) ->
+      days |> list.map(fn(day) { day.date }) |> stringify_date_list
+    LockedCompetition(_, _, days, _, _) -> stringify_date_list(days)
+  }
+}
+
+pub fn stringify_date_list(days: List(calendar.Date)) -> String {
+  case list.length(days) {
+    0 -> "-"
+    1 -> {
+      let assert Ok(only_day) = list.first(days)
+      date_to_string(only_day)
+    }
+    _ -> {
+      let sorted_dates = days |> list.sort(by: calendar.naive_date_compare)
+
+      let assert Ok(start) = sorted_dates |> list.first
+      let assert Ok(end) = sorted_dates |> list.reverse |> list.first
+
+      date_to_string(start) <> "-" <> date_to_string(end)
+    }
   }
 }
