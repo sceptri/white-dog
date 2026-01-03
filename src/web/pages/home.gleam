@@ -101,7 +101,8 @@ fn competition_deadline(event: AbstractCompetition) -> Element(t) {
     competition.LockedCompetition(_, _, _, _, _) -> text("")
     competition.Competition(_, _, _, _, _, deadline) ->
       case deadline {
-        option.None -> text("Neznámý deadline")
+        option.None ->
+          text("Deadline na přihlašování je neznámý nebo již skončilo.")
         option.Some(deadline_date) ->
           text("Deadline: " <> competition.date_to_string(deadline_date))
       }
@@ -162,40 +163,56 @@ fn competition_info(event: AbstractCompetition) -> List(Element(t)) {
   case event.info {
     option.None -> []
     option.Some(info) -> [
-      hr([]),
-      div(
-        [class("competition-more-info")],
-        [
-          div([class("competition-info-row")], [
-            html.p([], [text("Místo: " <> info.location)]),
-            html.p([], [
-              text(case info.gps {
-                option.None -> ""
-                option.Some(gps) -> competition.gps_to_string(gps)
-              }),
-            ]),
-          ]),
-          div([class("competition-info-row")], [
-            html.p([], [
-              text("Web: "),
-              html.a([class("competition-link"), href(info.web)], [
-                text("Odkaz"),
+      html.details([], [
+        html.summary([class("competition-more-info-summary")], [
+          text("Podrobnosti:"),
+        ]),
+        div(
+          [class("competition-more-info")],
+          [
+            div([class("competition-info-row")], [
+              html.p([], [text("Místo: " <> info.location)]),
+              html.p([], [
+                text(case info.gps {
+                  option.None -> ""
+                  option.Some(gps) -> competition.gps_to_string(gps)
+                }),
               ]),
             ]),
-            html.p([], [
-              text(
-                list.fold(info.judge, "", fn(text, judge) {
-                  case text {
-                    "" -> "Rozhodčí: " <> judge
-                    so_far -> so_far <> ", " <> judge
-                  }
-                }),
-              ),
+            div([class("competition-info-row")], [
+              html.p([], [
+                text("Web: "),
+                html.a([class("competition-link"), href(info.web)], [
+                  text("Odkaz"),
+                ]),
+              ]),
+              html.p([], [
+                text(
+                  list.fold(info.judge, "", fn(text, judge) {
+                    case text {
+                      "" -> "Rozhodčí: " <> judge
+                      so_far -> so_far <> ", " <> judge
+                    }
+                  }),
+                ),
+              ]),
             ]),
-          ]),
-        ]
-          |> list.append(competition_note(info)),
-      ),
+          ]
+            |> list.append(competition_conditions(info))
+            |> list.append(competition_note(info)),
+        ),
+      ]),
+    ]
+  }
+}
+
+fn competition_conditions(info: competition.CompetitionInfo) -> List(Element(t)) {
+  case info.conditions {
+    option.None -> []
+    option.Some(conditions) -> [
+      div([class("competition-info-row")], [
+        html.p([], [text("Podmínky: " <> conditions)]),
+      ]),
     ]
   }
 }
@@ -204,9 +221,17 @@ fn competition_note(info: competition.CompetitionInfo) -> List(Element(t)) {
   case info.note {
     option.None -> []
     option.Some(note) -> [
-      div([class("competition-info-row")], [
-        html.p([], [text("Poznámka: " <> note)]),
-      ]),
+      div([class("competition-info-row")], case string.contains(note, "<") {
+        True ->
+          list.append([html.p([class("note-header")], [text("Poznámka: ")])], [
+            element.unsafe_raw_html("note", "div", [], note),
+          ])
+        False -> [
+          html.p([class("note-header")], [
+            text("Poznámka: " <> note),
+          ]),
+        ]
+      }),
     ]
   }
 }

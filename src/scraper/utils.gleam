@@ -33,7 +33,7 @@ pub fn penultimate(collection: List(a)) -> Result(a, Nil) {
 
 pub fn filter_elements(
   collection: List(soup.Element),
-  tag: String,
+  tag tag: String,
 ) -> List(soup.Element) {
   list.filter(collection, fn(el) {
     case el {

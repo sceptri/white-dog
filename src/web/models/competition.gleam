@@ -50,6 +50,7 @@ pub type CompetitionInfo {
     judge: List(String),
     web: String,
     agigames_id: Option(Int),
+    conditions: Option(String),
     note: Option(String),
   )
 }
@@ -74,6 +75,7 @@ pub fn test_competitions() -> List(AbstractCompetition) {
         judge: ["Jan Novák", "Pan Starák"],
         web: "https://google.com",
         agigames_id: Some(3117),
+        conditions: Some("Uvnitř"),
         note: Some("..."),
       )),
     ),
@@ -98,6 +100,7 @@ pub fn test_competitions() -> List(AbstractCompetition) {
         judge: ["Jan Novák"],
         web: "https://google.com",
         agigames_id: Some(3117),
+        conditions: None,
         note: None,
       )),
     ),
@@ -131,6 +134,18 @@ pub fn gps_to_string(gps: GPSCoordinates) -> String {
   <> float.to_string(gps.latitude)
   <> ", "
   <> float.to_string(gps.longitude)
+}
+
+pub fn string_to_gps(gps: String) -> Result(GPSCoordinates, Nil) {
+  case string.split(gps, ", ") {
+    [latitude, longitude] -> {
+      case float.parse(latitude), float.parse(longitude) {
+        Ok(latitude), Ok(longitude) -> Ok(GPSCoordinates(latitude, longitude))
+        _, _ -> Error(Nil)
+      }
+    }
+    _ -> Error(Nil)
+  }
 }
 
 pub fn date_to_string(input_date: calendar.Date) -> String {

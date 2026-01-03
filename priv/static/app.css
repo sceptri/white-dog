@@ -55,6 +55,12 @@ body {
 	justify-content: space-between;
 }
 
+.competition-more-info-summary {
+	margin-top: 20px;
+	font-weight: bold;
+	font-style: italic;
+}
+
 .competition-info p {
 	margin: 12px;
 }
@@ -99,4 +105,8 @@ body {
 	flex-direction: row;
 	align-items: center;
 	justify-content: start;
+}
+
+.note-header {
+	font-style: italic;
 }

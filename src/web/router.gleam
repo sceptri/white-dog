@@ -17,15 +17,14 @@ pub fn handle_request(req: Request, ctx: Context) -> Response {
     [] -> {
       [
         pages.home(
-          //   [
-          //     kacr.query_competition(5503),
-          //     kacr.query_competition(5504),
-          //     kacr.query_competition(5505),
-          //   ]
-          //   |> list.filter_map(function.identity)
-          //   |> list.map(competition.build_from_kacr_query)
-          //   |> list.filter_map(function.identity),
-          competition.test_competitions(),
+          [
+            kacr.query_competition(122),
+            kacr.query_competition(5503),
+            kacr.query_competition(5381),
+            kacr.query_competition(5459),
+          ]
+          |> list.filter_map(function.identity),
+          //competition.test_competitions(),
         ),
       ]
       |> layout
